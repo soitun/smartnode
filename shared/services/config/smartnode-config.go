@@ -126,6 +126,9 @@ type SmartnodeConfig struct {
 	// The contract address of RocketStorage
 	storageAddress map[config.Network]string `yaml:"-"`
 
+	// The contract address of RocketSignerRegistry
+	rocketSignerRegistryAddress map[config.Network]string `yaml:"-"`
+
 	// The contract address of the RPL token
 	rplTokenAddress map[config.Network]string `yaml:"-"`
 
@@ -466,6 +469,12 @@ func NewSmartnodeConfig(cfg *RocketPoolConfig) *SmartnodeConfig {
 			config.Network_Holesky: "0x594Fb75D3dc2DFa0150Ad03F99F97817747dd4E1",
 		},
 
+		rocketSignerRegistryAddress: map[config.Network]string{
+			config.Network_Mainnet: "0xc1062617d10Ae99E09D941b60746182A87eAB38F",
+			config.Network_Devnet:  "",
+			config.Network_Holesky: "0x657FDE6B4764E26A81A323dbb79791A11B90dD91",
+		},
+
 		rplTokenAddress: map[config.Network]string{
 			config.Network_Mainnet: "0xD33526068D116cE69F19A9ee46F0bd304F21A51f",
 			config.Network_Devnet:  "0x59A1a7AebCbF103B3C4f85261fbaC166117E1979",
@@ -559,6 +568,7 @@ func NewSmartnodeConfig(cfg *RocketPoolConfig) *SmartnodeConfig {
 		previousRewardsPoolAddresses: map[config.Network][]common.Address{
 			config.Network_Mainnet: {
 				common.HexToAddress("0x594Fb75D3dc2DFa0150Ad03F99F97817747dd4E1"),
+				common.HexToAddress("0xA805d68b61956BC92d556F2bE6d18747adAeEe82"),
 			},
 			config.Network_Devnet: {
 				common.HexToAddress("0x4d581a552490fb6fce5F978e66560C8b7E481818"),
@@ -765,6 +775,10 @@ func (cfg *SmartnodeConfig) GetCustomKeyPasswordFilePath() string {
 
 func (cfg *SmartnodeConfig) GetStorageAddress() string {
 	return cfg.storageAddress[cfg.Network.Value.(config.Network)]
+}
+
+func (cfg *SmartnodeConfig) GetRocketSignerRegistryAddress() string {
+	return cfg.rocketSignerRegistryAddress[cfg.Network.Value.(config.Network)]
 }
 
 func (cfg *SmartnodeConfig) GetRplTokenAddress() string {

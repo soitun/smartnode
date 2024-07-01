@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rocket-pool/rocketpool-go/dao/trustednode"
 	"github.com/rocket-pool/rocketpool-go/minipool"
@@ -25,8 +26,8 @@ import (
 	"github.com/rocket-pool/smartnode/shared/services/alerting"
 	"github.com/rocket-pool/smartnode/shared/services/alerting/alertmanager/models"
 	"github.com/rocket-pool/smartnode/shared/services/beacon"
-	"github.com/rocket-pool/smartnode/shared/services/state"
 	"github.com/rocket-pool/smartnode/shared/types/api"
+	cfgtypes "github.com/rocket-pool/smartnode/shared/types/config"
 	rputils "github.com/rocket-pool/smartnode/shared/utils/rp"
 )
 
@@ -59,6 +60,13 @@ func getStatus(c *cli.Context) (*api.NodeStatusResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	reg, err := services.GetRocketSignerRegistry(c)
+	if err != nil {
+		return nil, err
+	}
+	if reg == nil {
+		return nil, fmt.Errorf("Error getting the signer registry on network [%v].", cfg.Smartnode.Network.Value.(cfgtypes.Network))
+	}
 
 	// Response
 	response := api.NodeStatusResponse{}
@@ -72,12 +80,6 @@ func getStatus(c *cli.Context) (*api.NodeStatusResponse, error) {
 	}
 	response.AccountAddress = nodeAccount.Address
 	response.AccountAddressFormatted = formatResolvedAddress(c, response.AccountAddress)
-
-	// We need the houston deployment state before querying the node info
-	isHoustonDeployed, err := state.IsHoustonDeployed(rp, nil)
-	if err == nil {
-		response.IsHoustonDeployed = isHoustonDeployed
-	}
 
 	// Sync
 	var wg errgroup.Group
@@ -93,7 +95,7 @@ func getStatus(c *cli.Context) (*api.NodeStatusResponse, error) {
 
 	// Get node details
 	wg.Go(func() error {
-		details, err := node.GetNodeDetails(rp, nodeAccount.Address, response.IsHoustonDeployed, nil)
+		details, err := node.GetNodeDetails(rp, nodeAccount.Address, true, nil)
 		if err == nil {
 			response.Registered = details.Exists
 			response.PrimaryWithdrawalAddress = details.PrimaryWithdrawalAddress
@@ -110,36 +112,46 @@ func getStatus(c *cli.Context) (*api.NodeStatusResponse, error) {
 		return err
 	})
 
-	if response.IsHoustonDeployed {
-		// Check whether RPL locking is allowed for the node
-		wg.Go(func() error {
-			var err error
-			response.IsRPLLockingAllowed, err = node.GetRPLLockedAllowed(rp, nodeAccount.Address, nil)
-			return err
-		})
+	// Check whether RPL locking is allowed for the node
+	wg.Go(func() error {
+		var err error
+		response.IsRPLLockingAllowed, err = node.GetRPLLockedAllowed(rp, nodeAccount.Address, nil)
+		return err
+	})
 
-		// Get the node's locked RPL
-		wg.Go(func() error {
-			var err error
-			response.NodeRPLLocked, err = node.GetNodeRPLLocked(rp, nodeAccount.Address, nil)
-			return err
-		})
+	// Get the node's locked RPL
+	wg.Go(func() error {
+		var err error
+		response.NodeRPLLocked, err = node.GetNodeRPLLocked(rp, nodeAccount.Address, nil)
+		return err
+	})
 
-		wg.Go(func() error {
-			var err error
-			response.IsVotingInitialized, err = network.GetVotingInitialized(rp, nodeAccount.Address, nil)
-			return err
-		})
+	// Check if Voting is Initialized
+	wg.Go(func() error {
+		var err error
+		response.IsVotingInitialized, err = network.GetVotingInitialized(rp, nodeAccount.Address, nil)
+		return err
+	})
 
-		wg.Go(func() error {
-			var err error
-			response.OnchainVotingDelegate, err = network.GetCurrentVotingDelegate(rp, nodeAccount.Address, nil)
-			if err == nil {
-				response.OnchainVotingDelegateFormatted = formatResolvedAddress(c, response.OnchainVotingDelegate)
-			}
-			return err
-		})
-	}
+	// Get the node's signalling address
+	wg.Go(func() error {
+		var err error
+		response.SignallingAddress, err = reg.NodeToSigner(&bind.CallOpts{}, nodeAccount.Address)
+		if err == nil {
+			response.SignallingAddressFormatted = formatResolvedAddress(c, response.SignallingAddress)
+		}
+		return err
+	})
+
+	// Get the node onchain voting delegate
+	wg.Go(func() error {
+		var err error
+		response.OnchainVotingDelegate, err = network.GetCurrentVotingDelegate(rp, nodeAccount.Address, nil)
+		if err == nil {
+			response.OnchainVotingDelegateFormatted = formatResolvedAddress(c, response.OnchainVotingDelegate)
+		}
+		return err
+	})
 
 	// Get node account balances
 	wg.Go(func() error {
@@ -310,7 +322,7 @@ func getStatus(c *cli.Context) (*api.NodeStatusResponse, error) {
 		}
 		response.PrimaryWithdrawalBalances = withdrawalBalances
 	}
-	if response.IsHoustonDeployed && !bytes.Equal(nodeAccount.Address.Bytes(), response.RPLWithdrawalAddress.Bytes()) &&
+	if !bytes.Equal(nodeAccount.Address.Bytes(), response.RPLWithdrawalAddress.Bytes()) &&
 		!bytes.Equal(response.PrimaryWithdrawalAddress.Bytes(), response.RPLWithdrawalAddress.Bytes()) {
 		withdrawalBalances, err := tokens.GetBalances(rp, response.RPLWithdrawalAddress, nil)
 		if err != nil {
@@ -319,24 +331,21 @@ func getStatus(c *cli.Context) (*api.NodeStatusResponse, error) {
 		response.RPLWithdrawalBalances = withdrawalBalances
 	}
 
-	if response.IsHoustonDeployed {
-		creditAndBalance, err := node.GetNodeCreditAndBalance(rp, nodeAccount.Address, nil)
-		if err != nil {
-			return nil, err
-		}
-		response.CreditAndEthOnBehalfBalance = creditAndBalance
-		usableCreditAndBalance, err := node.GetNodeUsableCreditAndBalance(rp, nodeAccount.Address, nil)
-		if err != nil {
-			return nil, err
-		}
-		response.UsableCreditAndEthOnBehalfBalance = usableCreditAndBalance
-		ethBalance, err := node.GetNodeEthBalance(rp, nodeAccount.Address, nil)
-		if err != nil {
-			return nil, err
-		}
-		response.EthOnBehalfBalance = ethBalance
-
+	creditAndBalance, err := node.GetNodeCreditAndBalance(rp, nodeAccount.Address, nil)
+	if err != nil {
+		return nil, err
 	}
+	response.CreditAndEthOnBehalfBalance = creditAndBalance
+	usableCreditAndBalance, err := node.GetNodeUsableCreditAndBalance(rp, nodeAccount.Address, nil)
+	if err != nil {
+		return nil, err
+	}
+	response.UsableCreditAndEthOnBehalfBalance = usableCreditAndBalance
+	ethBalance, err := node.GetNodeEthBalance(rp, nodeAccount.Address, nil)
+	if err != nil {
+		return nil, err
+	}
+	response.EthOnBehalfBalance = ethBalance
 
 	// Get the collateral ratio
 	rplPrice, err := network.GetRPLPrice(rp, nil)

@@ -1,6 +1,7 @@
 package pdao
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -12,13 +13,16 @@ import (
 	"github.com/rocket-pool/rocketpool-go/utils/strings"
 	"github.com/rocket-pool/smartnode/shared/services/rocketpool"
 	"github.com/rocket-pool/smartnode/shared/types/api"
+	cliutils "github.com/rocket-pool/smartnode/shared/utils/cli"
 	"github.com/rocket-pool/smartnode/shared/utils/math"
 )
 
 const (
-	colorBlue  string = "\033[36m"
-	colorReset string = "\033[0m"
-	colorGreen string = "\033[32m"
+	colorBlue             string = "\033[36m"
+	colorReset            string = "\033[0m"
+	colorGreen            string = "\033[32m"
+	signallingAddressLink string = "https://docs.rocketpool.net/guides/houston/participate#setting-your-snapshot-signalling-address"
+	challengeLink         string = "https://docs.rocketpool.net/guides/houston/pdao#challenge-process"
 )
 
 func getStatus(c *cli.Context) error {
@@ -27,14 +31,27 @@ func getStatus(c *cli.Context) error {
 	rp := rocketpool.NewClientFromCtx(c)
 	defer rp.Close()
 
-	// Check for Houston
-	houston, err := rp.IsHoustonDeployed()
+	// Get wallet status
+	walletStatus, err := rp.WalletStatus()
 	if err != nil {
-		return fmt.Errorf("error checking if Houston has been deployed: %w", err)
+		return err
 	}
-	if !houston.IsHoustonDeployed {
-		fmt.Println("This command cannot be used until Houston has been deployed.")
-		return nil
+
+	// Get the config
+	cfg, isNew, err := rp.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("Error loading configuration: %w", err)
+	}
+
+	// Print what network we're on
+	err = cliutils.PrintNetwork(cfg.GetNetwork(), isNew)
+	if err != nil {
+		return err
+	}
+
+	// rp.PDAOStatus() will fail with an error, but we can short-circuit it here.
+	if !walletStatus.WalletInitialized {
+		return errors.New("The node wallet is not initialized.")
 	}
 
 	// Get PDAO status at the latest block
@@ -52,17 +69,17 @@ func getStatus(c *cli.Context) error {
 	// Get protocol DAO proposals
 	claimableBondsResponse, err := rp.PDAOGetClaimableBonds()
 	if err != nil {
-		fmt.Errorf("error checking for claimable bonds: %w", err)
+		return fmt.Errorf("error checking for claimable bonds: %w", err)
 	}
 	claimableBonds := claimableBondsResponse.ClaimableBonds
 
-	// Snapshot voting status
-	fmt.Printf("%s=== Snapshot Voting ===%s\n", colorGreen, colorReset)
+	// Signalling Status
+	fmt.Printf("%s=== Signalling on Snapshot ===%s\n", colorGreen, colorReset)
 	blankAddress := common.Address{}
-	if response.SnapshotVotingDelegate == blankAddress {
-		fmt.Println("The node does not currently have a voting delegate set, which means it can only vote directly on Snapshot proposals (using a hardware wallet with the node mnemonic loaded).\nRun `rocketpool n sv <address>` to vote from a different wallet or have a delegate represent you. (See https://delegates.rocketpool.net for options)")
+	if response.SignallingAddress == blankAddress {
+		fmt.Printf("The node does not currently have a snapshot signalling address set.\nTo learn more about snapshot signalling, please visit %s.\n", signallingAddressLink)
 	} else {
-		fmt.Printf("The node has a voting delegate of %s%s%s which can represent it when voting on Rocket Pool Snapshot governance proposals.\n", colorBlue, response.SnapshotVotingDelegateFormatted, colorReset)
+		fmt.Printf("The node can vote directly or override their delegate of %s%s%s which can represent it when voting on Rocket Pool Snapshot governance proposals.\n", colorBlue, response.SignallingAddressFormatted, colorReset)
 	}
 
 	if response.SnapshotResponse.Error != "" {
@@ -88,10 +105,9 @@ func getStatus(c *cli.Context) error {
 	// Onchain Voting Status
 	fmt.Printf("%s=== Onchain Voting ===%s\n", colorGreen, colorReset)
 	if response.IsVotingInitialized {
-		fmt.Println("The node has been initialized for onchain voting.")
-
+		fmt.Printf("The node %s%s%s has been initialized for onchain voting.\n", colorBlue, response.AccountAddressFormatted, colorReset)
 	} else {
-		fmt.Println("The node has NOT been initialized for onchain voting. You need to run `rocketpool pdao initialize-voting` to participate in onchain votes.")
+		fmt.Printf("The node %s%s%s has NOT been initialized for onchain voting. You need to run `rocketpool pdao initialize-voting` to participate in onchain votes.\n", colorBlue, response.AccountAddressFormatted, colorReset)
 	}
 
 	if response.OnchainVotingDelegate == blankAddress {
@@ -103,10 +119,13 @@ func getStatus(c *cli.Context) error {
 	}
 	fmt.Printf("The node's local voting power: %.10f\n", eth.WeiToEth(response.VotingPower))
 
-	fmt.Printf("Total voting power delegated to the node: %.10f\n", eth.WeiToEth(response.TotalDelegatedVp))
+	if response.IsNodeRegistered {
+		fmt.Printf("Total voting power delegated to the node: %.10f\n", eth.WeiToEth(response.TotalDelegatedVp))
+	} else {
+		fmt.Print("The node must register using 'rocketpool node register' to be eligible to receive delegated voting power.\n")
+	}
 
 	fmt.Printf("Network total initialized voting power: %.10f\n", eth.WeiToEth(response.SumVotingPower))
-
 	fmt.Println("")
 
 	// Claimable Bonds Status:
@@ -119,7 +138,7 @@ func getStatus(c *cli.Context) error {
 		}
 
 	} else {
-		fmt.Print("The node is NOT allowed to lock RPL to create governance proposals/challenges. Use 'rocketpool node  allow-rpl-locking, to allow RPL locking.\n")
+		fmt.Print("The node is NOT allowed to lock RPL to create governance proposals/challenges. Use 'rocketpool node allow-rpl-locking, to allow RPL locking.\n")
 	}
 	if len(claimableBonds) == 0 {
 		fmt.Println("You do not have any unlockable bonds or claimable rewards.")
@@ -134,7 +153,8 @@ func getStatus(c *cli.Context) error {
 	if response.VerifyEnabled {
 		fmt.Println("The node has PDAO proposal checking duties enabled. It will periodically check for proposals to challenge.")
 	} else {
-		fmt.Println("The node does not have PDAO proposal checking duties enabled (See https://docs.rocketpool.net/guides/houston/pdao#challenge-process to learn more about this duty).")
+		fmt.Printf("The node does not have PDAO proposal checking duties enabled (See %s to learn more about this duty).", challengeLink)
+		fmt.Println("")
 	}
 	fmt.Println("")
 

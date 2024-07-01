@@ -391,6 +391,19 @@ type PDAOCurrentVotingDelegateResponse struct {
 	VotingDelegate common.Address `json:"votingDelegate"`
 }
 
+type PDAOCanInitializeVotingWithDelegateResponse struct {
+	Status            string             `json:"status"`
+	Error             string             `json:"error"`
+	VotingInitialized bool               `json:"votingInitialized"`
+	GasInfo           rocketpool.GasInfo `json:"gasInfo"`
+}
+
+type PDAOInitializeVotingWithDelegateResponse struct {
+	Status string      `json:"status"`
+	Error  string      `json:"error"`
+	TxHash common.Hash `json:"txHash"`
+}
+
 type PDAOCanInitializeVotingResponse struct {
 	Status            string             `json:"status"`
 	Error             string             `json:"error"`
@@ -420,10 +433,41 @@ type PDAOStatusResponse struct {
 		ProposalVotes           []SnapshotProposalVote `json:"proposalVotes"`
 		ActiveSnapshotProposals []SnapshotProposal     `json:"activeSnapshotProposals"`
 	} `json:"snapshotResponse"`
-	IsRPLLockingAllowed     bool           `json:"isRPLLockingAllowed"`
-	NodeRPLLocked           *big.Int       `json:"nodeRPLLocked"`
-	AccountAddress          common.Address `json:"accountAddress"`
-	AccountAddressFormatted string         `json:"accountAddressFormatted"`
-	TotalDelegatedVp        *big.Int       `json:"totalDelegateVp"`
-	SumVotingPower          *big.Int       `json:"sumVotingPower"`
+	IsRPLLockingAllowed        bool           `json:"isRPLLockingAllowed"`
+	NodeRPLLocked              *big.Int       `json:"nodeRPLLocked"`
+	AccountAddress             common.Address `json:"accountAddress"`
+	AccountAddressFormatted    string         `json:"accountAddressFormatted"`
+	TotalDelegatedVp           *big.Int       `json:"totalDelegateVp"`
+	SumVotingPower             *big.Int       `json:"sumVotingPower"`
+	IsNodeRegistered           bool           `json:"isNodeRegistered"`
+	SignallingAddress          common.Address `json:"signallingAddress"`
+	SignallingAddressFormatted string         `json:"SignallingAddressFormatted"`
+}
+
+type PDAOCanSetSignallingAddressResponse struct {
+	Status            string             `json:"status"`
+	Error             string             `json:"error"`
+	GasInfo           rocketpool.GasInfo `json:"gasInfo"`
+	VotingInitialized bool               `json:"votingInitialized"`
+	NodeToSigner      common.Address     `json:"nodeToSigner"`
+}
+
+type PDAOSetSignallingAddressResponse struct {
+	Status string      `json:"status"`
+	Error  string      `json:"error"`
+	TxHash common.Hash `json:"txHash"`
+}
+
+type PDAOCanClearSignallingAddressResponse struct {
+	Status            string             `json:"status"`
+	Error             string             `json:"error"`
+	GasInfo           rocketpool.GasInfo `json:"gasInfo"`
+	VotingInitialized bool               `json:"votingInitialized"`
+	NodeToSigner      common.Address     `json:"nodeToSigner"`
+}
+
+type PDAOClearSignallingAddressResponse struct {
+	Status string      `json:"status"`
+	Error  string      `json:"error"`
+	TxHash common.Hash `json:"txHash"`
 }

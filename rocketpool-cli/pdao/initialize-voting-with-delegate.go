@@ -9,18 +9,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-func initializeVotingPrompt(c *cli.Context) error {
-
-	if cliutils.Confirm(fmt.Sprintf("Would you like to specify a delegate that can vote on your behalf on Protocol DAO proposals??")) {
-		return initializeVotingWithDelegate(c)
-	} else {
-		return initializeVoting(c)
-	}
-	return nil
-}
-
-func initializeVoting(c *cli.Context) error {
-
+func initializeVotingWithDelegate(c *cli.Context) error {
 	// Get RP client
 	rp, err := rocketpool.NewClientFromCtx(c).WithReady()
 	if err != nil {
@@ -28,7 +17,17 @@ func initializeVoting(c *cli.Context) error {
 	}
 	defer rp.Close()
 
-	resp, err := rp.CanInitializeVoting()
+	// Get the address
+	delegateAddressString := c.String("address")
+	if delegateAddressString == "" {
+		delegateAddressString = cliutils.Prompt("Please enter the delegate's address:", "^0x[0-9a-fA-F]{40}$", "Invalid member address")
+	}
+	delegateAddress, err := cliutils.ValidateAddress("delegateAddress", delegateAddressString)
+	if err != nil {
+		return err
+	}
+
+	resp, err := rp.CanInitializeVotingWithDelegate(delegateAddress)
 	if err != nil {
 		return fmt.Errorf("error calling get-voting-initialized: %w", err)
 	}
@@ -51,7 +50,7 @@ func initializeVoting(c *cli.Context) error {
 	}
 
 	// Initialize voting
-	response, err := rp.InitializeVoting()
+	response, err := rp.InitializeVotingWithDelegate(delegateAddress)
 	if err != nil {
 		return fmt.Errorf("error calling initialize-voting: %w", err)
 	}

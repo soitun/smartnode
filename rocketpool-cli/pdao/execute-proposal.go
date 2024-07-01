@@ -6,6 +6,7 @@ import (
 
 	rocketpoolapi "github.com/rocket-pool/rocketpool-go/rocketpool"
 	"github.com/rocket-pool/rocketpool-go/types"
+	"github.com/rocket-pool/rocketpool-go/utils/strings"
 	"github.com/urfave/cli"
 
 	"github.com/rocket-pool/smartnode/shared/services/gas"
@@ -22,16 +23,6 @@ func executeProposal(c *cli.Context) error {
 		return err
 	}
 	defer rp.Close()
-
-	// Check for Houston
-	houston, err := rp.IsHoustonDeployed()
-	if err != nil {
-		return fmt.Errorf("error checking if Houston has been deployed: %w", err)
-	}
-	if !houston.IsHoustonDeployed {
-		fmt.Println("This command cannot be used until Houston has been deployed.")
-		return nil
-	}
 
 	// Get protocol DAO proposals
 	proposals, err := rp.PDAOProposals()
@@ -87,6 +78,10 @@ func executeProposal(c *cli.Context) error {
 		options := make([]string, len(executableProposals)+1)
 		options[0] = "All available proposals"
 		for pi, proposal := range executableProposals {
+			if len(proposal.Message) > 200 {
+				proposal.Message = proposal.Message[:200]
+			}
+			proposal.Message = strings.Sanitize(proposal.Message)
 			options[pi+1] = fmt.Sprintf("proposal %d (message: '%s', payload: %s)", proposal.ID, proposal.Message, proposal.PayloadStr)
 		}
 		selected, _ := cliutils.Select("Please select a proposal to execute:", options)

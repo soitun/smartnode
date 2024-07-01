@@ -74,7 +74,62 @@ func RegisterCommands(app *cli.App, name string, aliases []string) {
 				Action: func(c *cli.Context) error {
 
 					// Run
-					return initializeVoting(c)
+					return initializeVotingPrompt(c)
+
+				},
+			},
+			{
+				Name:      "set-signalling-address",
+				Aliases:   []string{"ssa"},
+				Usage:     "Set the address you want to use to represent your node on Snapshot",
+				UsageText: "rocketpool pdao set-signalling-address signalling-address signature",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name:  "yes, y",
+						Usage: "Automatically confirm all interactive questions",
+					},
+				},
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 2); err != nil {
+						return err
+					}
+					snapshotAddress, err := cliutils.ValidateAddress("signalling-address", c.Args().Get(0))
+					if err != nil {
+						return err
+					}
+					signature, err := cliutils.ValidateSignature("signature", c.Args().Get(1))
+					if err != nil {
+						return err
+					}
+
+					// Run
+					return setSignallingAddress(c, snapshotAddress, signature)
+
+				},
+			},
+
+			{
+				Name:      "clear-signalling-address",
+				Aliases:   []string{"csa"},
+				Usage:     "Clear the node's signalling address",
+				UsageText: "rocketpool pdao clear-signalling-address signalling-address signature",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name:  "yes, y",
+						Usage: "Automatically confirm all interactive questions",
+					},
+				},
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 0); err != nil {
+						return err
+					}
+
+					// Run
+					return clearSignallingAddress(c)
 
 				},
 			},

@@ -18,7 +18,6 @@ type NodeStatusResponse struct {
 	Status                                   string          `json:"status"`
 	Error                                    string          `json:"error"`
 	Warning                                  string          `json:"warning"`
-	IsHoustonDeployed                        bool            `json:"isHoustonDeployed"`
 	AccountAddress                           common.Address  `json:"accountAddress"`
 	AccountAddressFormatted                  string          `json:"accountAddressFormatted"`
 	PrimaryWithdrawalAddress                 common.Address  `json:"primaryWithdrawalAddress"`
@@ -84,7 +83,9 @@ type NodeStatusResponse struct {
 		ProposalVotes           []SnapshotProposalVote `json:"proposalVotes"`
 		ActiveSnapshotProposals []SnapshotProposal     `json:"activeSnapshotProposals"`
 	} `json:"snapshotResponse"`
-	Alerts []NodeAlert `json:"alerts"`
+	Alerts                     []NodeAlert    `json:"alerts"`
+	SignallingAddress          common.Address `json:"signallingAddress"`
+	SignallingAddressFormatted string         `json:"signallingAddressFormatted"`
 }
 
 type NodeAlert struct {

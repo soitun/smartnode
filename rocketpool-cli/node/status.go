@@ -18,12 +18,13 @@ import (
 )
 
 const (
-	colorReset        string = "\033[0m"
-	colorRed          string = "\033[31m"
-	colorGreen        string = "\033[32m"
-	colorYellow       string = "\033[33m"
-	smoothingPoolLink string = "https://docs.rocketpool.net/guides/redstone/whats-new.html#smoothing-pool"
-	maxAlertItems     int    = 3
+	colorReset            string = "\033[0m"
+	colorRed              string = "\033[31m"
+	colorGreen            string = "\033[32m"
+	colorYellow           string = "\033[33m"
+	smoothingPoolLink     string = "https://docs.rocketpool.net/guides/redstone/whats-new.html#smoothing-pool"
+	signallingAddressLink string = "https://docs.rocketpool.net/guides/houston/participate#setting-your-snapshot-signalling-address"
+	maxAlertItems         int    = 3
 )
 
 func getStatus(c *cli.Context) error {
@@ -89,19 +90,12 @@ func getStatus(c *cli.Context) error {
 	if status.AccountBalances.FixedSupplyRPL.Cmp(big.NewInt(0)) > 0 {
 		fmt.Printf("The node has a balance of %.6f old RPL which can be swapped for new RPL.\n", math.RoundDown(eth.WeiToEth(status.AccountBalances.FixedSupplyRPL), 6))
 	}
-	if status.IsHoustonDeployed {
-		fmt.Printf(
-			"The node has %.6f ETH in its credit balance and %.6f ETH staked on its behalf. %.6f can be used to make new minipools.\n",
-			math.RoundDown(eth.WeiToEth(status.CreditBalance), 6),
-			math.RoundDown(eth.WeiToEth(status.EthOnBehalfBalance), 6),
-			math.RoundDown(eth.WeiToEth(status.UsableCreditAndEthOnBehalfBalance), 6),
-		)
-	} else {
-		fmt.Printf(
-			"The node has %.6f ETH in its credit balance, which can be used to make new minipools.\n",
-			math.RoundDown(eth.WeiToEth(status.CreditBalance), 6),
-		)
-	}
+	fmt.Printf(
+		"The node has %.6f ETH in its credit balance and %.6f ETH staked on its behalf. %.6f can be used to make new minipools.\n",
+		math.RoundDown(eth.WeiToEth(status.CreditBalance), 6),
+		math.RoundDown(eth.WeiToEth(status.EthOnBehalfBalance), 6),
+		math.RoundDown(eth.WeiToEth(status.UsableCreditAndEthOnBehalfBalance), 6),
+	)
 
 	// Registered node details
 	if status.Registered {
@@ -154,13 +148,13 @@ func getStatus(c *cli.Context) error {
 			fmt.Println()
 		}
 
-		// Snapshot voting status
-		fmt.Printf("%s=== Snapshot Voting ===%s\n", colorGreen, colorReset)
+		// Signalling Status
+		fmt.Printf("%s=== Signalling on Snapshot ===%s\n", colorGreen, colorReset)
 		blankAddress := common.Address{}
-		if status.SnapshotVotingDelegate == blankAddress {
-			fmt.Println("The node does not currently have a voting delegate set, which means it can only vote directly on Snapshot proposals (using a hardware wallet with the node mnemonic loaded).\nRun `rocketpool n sv <address>` to vote from a different wallet or have a delegate represent you. (See https://delegates.rocketpool.net for options)")
+		if status.SignallingAddress == blankAddress {
+			fmt.Printf("The node does not currently have a snapshot signalling address set.\nTo learn more about snapshot signalling, please visit %s.\n", signallingAddressLink)
 		} else {
-			fmt.Printf("The node has a voting delegate of %s%s%s which can represent it when voting on Rocket Pool Snapshot governance proposals.\n", colorBlue, status.SnapshotVotingDelegateFormatted, colorReset)
+			fmt.Printf("The node has a voting delegate of %s%s%s which can represent it when voting on Rocket Pool Snapshot governance proposals.\n", colorBlue, status.SignallingAddressFormatted, colorReset)
 		}
 
 		if status.SnapshotResponse.Error != "" {
@@ -183,35 +177,33 @@ func getStatus(c *cli.Context) error {
 			fmt.Println("")
 		}
 
-		if status.IsHoustonDeployed {
-			// Onchain voting status
-			fmt.Printf("%s=== Onchain Voting ===%s\n", colorGreen, colorReset)
-			if status.IsVotingInitialized {
-				fmt.Println("The node has been initialized for onchain voting.")
+		// Onchain voting status
+		fmt.Printf("%s=== Onchain Voting ===%s\n", colorGreen, colorReset)
+		if status.IsVotingInitialized {
+			fmt.Println("The node has been initialized for onchain voting.")
 
-			} else {
-				fmt.Println("The node has NOT been initialized for onchain voting. You need to run `rocketpool pdao initialize-voting` to participate in onchain votes.")
-			}
-
-			if status.OnchainVotingDelegate == blankAddress {
-				fmt.Println("The node doesn't have a delegate, which means it can vote directly on onchain proposals after it initializes voting.")
-			} else if status.OnchainVotingDelegate == status.AccountAddress {
-				fmt.Println("The node doesn't have a delegate, which means it can vote directly on onchain proposals. You can have another node represent you by running `rocketpool p svd <address>`.")
-			} else {
-				fmt.Printf("The node has a voting delegate of %s%s%s which can represent it when voting on Rocket Pool onchain governance proposals.\n", colorBlue, status.OnchainVotingDelegateFormatted, colorReset)
-			}
-			if status.IsRPLLockingAllowed {
-				fmt.Print("The node is allowed to lock RPL to create governance proposals/challenges.\n")
-				if status.NodeRPLLocked.Cmp(big.NewInt(0)) != 0 {
-					fmt.Printf("The node currently has %.6f RPL locked.\n",
-						math.RoundDown(eth.WeiToEth(status.NodeRPLLocked), 6))
-				}
-
-			} else {
-				fmt.Print("The node is NOT allowed to lock RPL to create governance proposals/challenges.\n")
-			}
-			fmt.Println("")
+		} else {
+			fmt.Println("The node has NOT been initialized for onchain voting. You need to run `rocketpool pdao initialize-voting` to participate in onchain votes.")
 		}
+
+		if status.OnchainVotingDelegate == blankAddress {
+			fmt.Println("The node doesn't have a delegate, which means it can vote directly on onchain proposals after it initializes voting.")
+		} else if status.OnchainVotingDelegate == status.AccountAddress {
+			fmt.Println("The node doesn't have a delegate, which means it can vote directly on onchain proposals. You can have another node represent you by running `rocketpool p svd <address>`.")
+		} else {
+			fmt.Printf("The node has a voting delegate of %s%s%s which can represent it when voting on Rocket Pool onchain governance proposals.\n", colorBlue, status.OnchainVotingDelegateFormatted, colorReset)
+		}
+		if status.IsRPLLockingAllowed {
+			fmt.Print("The node is allowed to lock RPL to create governance proposals/challenges.\n")
+			if status.NodeRPLLocked.Cmp(big.NewInt(0)) != 0 {
+				fmt.Printf("The node currently has %.6f RPL locked.\n",
+					math.RoundDown(eth.WeiToEth(status.NodeRPLLocked), 6))
+			}
+
+		} else {
+			fmt.Print("The node is NOT allowed to lock RPL to create governance proposals/challenges.\n")
+		}
+		fmt.Println("")
 
 		// Primary withdrawal address & balances
 		fmt.Printf("%s=== Primary Withdrawal Address ===%s\n", colorGreen, colorReset)
@@ -224,11 +216,7 @@ func getStatus(c *cli.Context) error {
 				math.RoundDown(eth.WeiToEth(status.PrimaryWithdrawalBalances.ETH), 6),
 				math.RoundDown(eth.WeiToEth(status.PrimaryWithdrawalBalances.RPL), 6))
 		} else {
-			if status.IsHoustonDeployed {
-				fmt.Printf("%sThe node's primary withdrawal address has not been changed, so ETH rewards and minipool withdrawals will be sent to the node itself.\n", colorYellow)
-			} else {
-				fmt.Printf("%sThe node's primary withdrawal address has not been changed, so all rewards and minipool withdrawals will be sent to the node itself.\n", colorYellow)
-			}
+			fmt.Printf("%sThe node's primary withdrawal address has not been changed, so ETH rewards and minipool withdrawals will be sent to the node itself.\n", colorYellow)
 			fmt.Printf("Consider changing this to a cold wallet address that you control using the `set-withdrawal-address` command.\n%s", colorReset)
 		}
 		fmt.Println("")
@@ -239,30 +227,27 @@ func getStatus(c *cli.Context) error {
 		}
 
 		// RPL withdrawal address & balances
-		if status.IsHoustonDeployed {
-			fmt.Printf("%s=== RPL Withdrawal Address ===%s\n", colorGreen, colorReset)
-			if !status.IsRPLWithdrawalAddressSet {
-				fmt.Printf("The node's RPL withdrawal address has not been set. All RPL rewards will be sent to the primary withdrawal address.\n")
-			} else if bytes.Equal(status.AccountAddress.Bytes(), status.RPLWithdrawalAddress.Bytes()) {
-				fmt.Printf("The node's RPL withdrawal address has been explicitly set to the node address itself (%s%s%s).\n", colorBlue, status.RPLWithdrawalAddressFormatted, colorReset)
-			} else if bytes.Equal(status.PrimaryWithdrawalAddress.Bytes(), status.RPLWithdrawalAddress.Bytes()) {
-				fmt.Printf("The node's RPL withdrawal address has been explicitly set to the primary withdrawal address (%s%s%s).\n", colorBlue, status.RPLWithdrawalAddressFormatted, colorReset)
-			} else {
-				fmt.Printf(
-					"The node's RPL withdrawal address %s%s%s has a balance of %.6f ETH and %.6f RPL.\n",
-					colorBlue,
-					status.RPLWithdrawalAddressFormatted,
-					colorReset,
-					math.RoundDown(eth.WeiToEth(status.RPLWithdrawalBalances.ETH), 6),
-					math.RoundDown(eth.WeiToEth(status.RPLWithdrawalBalances.RPL), 6))
-			}
+		fmt.Printf("%s=== RPL Withdrawal Address ===%s\n", colorGreen, colorReset)
+		if !status.IsRPLWithdrawalAddressSet {
+			fmt.Printf("The node's RPL withdrawal address has not been set. All RPL rewards will be sent to the primary withdrawal address.\n")
+		} else if bytes.Equal(status.AccountAddress.Bytes(), status.RPLWithdrawalAddress.Bytes()) {
+			fmt.Printf("The node's RPL withdrawal address has been explicitly set to the node address itself (%s%s%s).\n", colorBlue, status.RPLWithdrawalAddressFormatted, colorReset)
+		} else if bytes.Equal(status.PrimaryWithdrawalAddress.Bytes(), status.RPLWithdrawalAddress.Bytes()) {
+			fmt.Printf("The node's RPL withdrawal address has been explicitly set to the primary withdrawal address (%s%s%s).\n", colorBlue, status.RPLWithdrawalAddressFormatted, colorReset)
+		} else {
+			fmt.Printf(
+				"The node's RPL withdrawal address %s%s%s has a balance of %.6f ETH and %.6f RPL.\n",
+				colorBlue,
+				status.RPLWithdrawalAddressFormatted,
+				colorReset,
+				math.RoundDown(eth.WeiToEth(status.RPLWithdrawalBalances.ETH), 6),
+				math.RoundDown(eth.WeiToEth(status.RPLWithdrawalBalances.RPL), 6))
+		}
+		fmt.Println("")
+		if status.PendingRPLWithdrawalAddress.Hex() != blankAddress.Hex() {
+			fmt.Printf("%sThe node's RPL withdrawal address has a pending change to %s which has not been confirmed yet.\n", colorYellow, status.PendingRPLWithdrawalAddressFormatted)
+			fmt.Printf("Please visit the Rocket Pool website with a web3-compatible wallet to complete this change.%s\n", colorReset)
 			fmt.Println("")
-			if status.PendingRPLWithdrawalAddress.Hex() != blankAddress.Hex() {
-				fmt.Printf("%sThe node's RPL withdrawal address has a pending change to %s which has not been confirmed yet.\n", colorYellow, status.PendingRPLWithdrawalAddressFormatted)
-				fmt.Printf("Please visit the Rocket Pool website with a web3-compatible wallet to complete this change.%s\n", colorReset)
-				fmt.Println("")
-			}
-
 		}
 
 		// Fee distributor details
@@ -305,11 +290,12 @@ func getStatus(c *cli.Context) error {
 		fmt.Println("NOTE: The following figures take *any pending bond reductions* into account.")
 		fmt.Println()
 		fmt.Printf(
-			"The node has a total stake of %.6f RPL and an effective stake of %.6f RPL.\n",
-			math.RoundDown(eth.WeiToEth(status.RplStake), 6),
-			math.RoundDown(eth.WeiToEth(status.EffectiveRplStake), 6))
+			"The node has a total stake of %.6f RPL.\n",
+			math.RoundDown(eth.WeiToEth(status.RplStake), 6))
 		if status.BorrowedCollateralRatio > 0 {
 			rplTooLow := (status.RplStake.Cmp(status.MinimumRplStake) < 0)
+			rplTotalStake := math.RoundDown(eth.WeiToEth(status.RplStake), 6)
+			rplWithdrawalLimit := math.RoundDown(eth.WeiToEth(status.MaximumRplStake), 6)
 			if rplTooLow {
 				fmt.Printf(
 					"This is currently %s%.2f%% of its borrowed ETH%s and %.2f%% of its bonded ETH.\n",
@@ -322,7 +308,11 @@ func getStatus(c *cli.Context) error {
 			fmt.Printf(
 				"It must keep at least %.6f RPL staked to claim RPL rewards (10%% of borrowed ETH).\n", math.RoundDown(eth.WeiToEth(status.MinimumRplStake), 6))
 			fmt.Printf(
-				"RPIP-30 is in effect and the node will gradually earn rewards in amounts above the previous limit of %.6f RPL (150%% of bonded ETH). Read more at https://github.com/rocket-pool/RPIPs/blob/main/RPIPs/RPIP-30.md\n", math.RoundDown(eth.WeiToEth(status.MaximumRplStake), 6))
+				"RPIP-30 is in effect and the node will gradually earn rewards in amounts above the previous limit of 150%% of bonded ETH. Read more at https://github.com/rocket-pool/RPIPs/blob/main/RPIPs/RPIP-30.md\n")
+			if rplTotalStake > rplWithdrawalLimit {
+				fmt.Printf(
+					"You can now withdraw down to %.6f RPL (%.0f%% of bonded eth)\n", math.RoundDown(eth.WeiToEth(status.MaximumRplStake), 6), (status.MaximumStakeFraction)*100)
+			}
 			if rplTooLow {
 				fmt.Printf("%sWARNING: you are currently undercollateralized. You must stake at least %.6f more RPL in order to claim RPL rewards.%s\n", colorRed, math.RoundUp(eth.WeiToEth(big.NewInt(0).Sub(status.MinimumRplStake, status.RplStake)), 6), colorReset)
 			}

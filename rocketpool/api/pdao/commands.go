@@ -923,10 +923,10 @@ func RegisterSubcommands(command *cli.Command, name string, aliases []string) {
 				},
 			},
 			{
-				Name:      "can-initialize-voting",
-				Aliases:   []string{"civ"},
+				Name:      "can-initialize-voting-with-delegate",
+				Aliases:   []string{"civd"},
 				Usage:     "Checks if voting can be initialized.",
-				UsageText: "rocketpool api pdao can-initialize-voting delegate-address",
+				UsageText: "rocketpool api pdao can-initialize-voting-with-delegate delegate-address",
 				Action: func(c *cli.Context) error {
 
 					// Validate args
@@ -940,7 +940,48 @@ func RegisterSubcommands(command *cli.Command, name string, aliases []string) {
 					}
 
 					// Run
-					api.PrintResponse(canNodeInitializeVoting(c, delegateAddress))
+					api.PrintResponse(canNodeInitializeVotingWithDelegate(c, delegateAddress))
+					return nil
+
+				},
+			},
+			{
+				Name:      "initialize-voting-with-delegate",
+				Aliases:   []string{"ivd"},
+				Usage:     "Initialize voting with delegate.",
+				UsageText: "rocketpool api pdao initialize-voting-with-delegate delegate-address",
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 1); err != nil {
+						return err
+					}
+
+					delegateAddress, err := cliutils.ValidateAddress("delegate address", c.Args().Get(0))
+					if err != nil {
+						return err
+					}
+
+					// Run
+					api.PrintResponse(nodeInitializeVotingWithDelegate(c, delegateAddress))
+					return nil
+
+				},
+			},
+			{
+				Name:      "can-initialize-voting",
+				Aliases:   []string{"civ"},
+				Usage:     "Checks if voting can be initialized.",
+				UsageText: "rocketpool api pdao can-initialize-voting delegate-address",
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 0); err != nil {
+						return err
+					}
+
+					// Run
+					api.PrintResponse(canNodeInitializeVoting(c))
 					return nil
 
 				},
@@ -953,17 +994,12 @@ func RegisterSubcommands(command *cli.Command, name string, aliases []string) {
 				Action: func(c *cli.Context) error {
 
 					// Validate args
-					if err := cliutils.ValidateArgCount(c, 1); err != nil {
-						return err
-					}
-
-					delegateAddress, err := cliutils.ValidateAddress("delegate address", c.Args().Get(0))
-					if err != nil {
+					if err := cliutils.ValidateArgCount(c, 0); err != nil {
 						return err
 					}
 
 					// Run
-					api.PrintResponse(nodeInitializeVoting(c, delegateAddress))
+					api.PrintResponse(nodeInitializeVoting(c))
 					return nil
 
 				},
@@ -1031,17 +1067,100 @@ func RegisterSubcommands(command *cli.Command, name string, aliases []string) {
 			},
 			{
 				Name:      "status",
-				Usage:     "get your node's voting power at the latest block",
+				Usage:     "Get the pdao status",
 				UsageText: "rocketpool api pdao status",
 				Action: func(c *cli.Context) error {
 
-					// // Validate args
-					// if err := cliutils.ValidateArgCount(c, 0); err != nil {
-					// 	return err
-					// }
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 0); err != nil {
+						return err
+					}
 
 					// Run
 					api.PrintResponse(getStatus(c))
+					return nil
+
+				},
+			},
+			{
+				Name:      "can-set-signalling-address",
+				Usage:     "Checks if signalling address can be set.",
+				UsageText: "rocketpool api pdao can-set-signalling-address signalling-address signature",
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 2); err != nil {
+						return err
+					}
+					signallingAddress, err := cliutils.ValidateAddress("signalling-address", c.Args().Get(0))
+					if err != nil {
+						return err
+					}
+					signature, err := cliutils.ValidateSignature("signature", c.Args().Get(1))
+					if err != nil {
+						return err
+					}
+
+					// Run
+					api.PrintResponse(canSetSignallingAddress(c, signallingAddress, signature))
+					return nil
+
+				},
+			},
+
+			{
+				Name:      "set-signalling-address",
+				Usage:     "Set the signalling address for the node",
+				UsageText: "rocketpool api pdao set-signalling-address signalling-address signature",
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 2); err != nil {
+						return err
+					}
+					signallingAddress, err := cliutils.ValidateAddress("signalling-address", c.Args().Get(0))
+					if err != nil {
+						return err
+					}
+					signature, err := cliutils.ValidateSignature("signature", c.Args().Get(1))
+					if err != nil {
+						return err
+					}
+
+					// Run
+					api.PrintResponse(setSignallingAddress(c, signallingAddress, signature))
+					return nil
+
+				},
+			},
+			{
+				Name:      "can-clear-signalling-address",
+				Usage:     "Checks if the signalling address can be cleared.",
+				UsageText: "rocketpool api pdao can-clear-signalling-address",
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 0); err != nil {
+						return err
+					}
+					// Run
+					api.PrintResponse(canClearSignallingAddress(c))
+					return nil
+
+				},
+			},
+			{
+				Name:      "clear-signalling-address",
+				Usage:     "Clear the signalling delegate address for the node",
+				UsageText: "rocketpool api pdao clear-signalling-address",
+				Action: func(c *cli.Context) error {
+
+					// Validate args
+					if err := cliutils.ValidateArgCount(c, 0); err != nil {
+						return err
+					}
+					// Run
+					api.PrintResponse(clearSignallingAddress(c))
 					return nil
 
 				},
