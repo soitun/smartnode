@@ -16,10 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/rocket-pool/rocketpool-go/rewards"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/tokens"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
+	"github.com/rocket-pool/smartnode/bindings/rewards"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/tokens"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
 	"github.com/rocket-pool/smartnode/rocketpool/watchtower/utils"
 	"github.com/rocket-pool/smartnode/shared/services"
 	"github.com/rocket-pool/smartnode/shared/services/beacon"
@@ -41,7 +41,7 @@ type submitRewardsTree_Stateless struct {
 	log              *log.ColorLogger
 	errLog           *log.ColorLogger
 	cfg              *config.RocketPoolConfig
-	w                *wallet.Wallet
+	w                wallet.Wallet
 	rp               *rocketpool.RocketPool
 	ec               rocketpool.ExecutionClient
 	bc               beacon.Client
@@ -59,7 +59,7 @@ func newSubmitRewardsTree_Stateless(c *cli.Context, logger log.ColorLogger, erro
 	if err != nil {
 		return nil, err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return nil, err
 	}
@@ -174,19 +174,6 @@ func (t *submitRewardsTree_Stateless) Run(nodeTrusted bool, state *state.Network
 	currentIndex := state.NetworkDetails.RewardIndex
 	currentIndexBig := big.NewInt(0).SetUint64(currentIndex)
 
-	// Check if the node has already submitted the rewards for the previous interval
-	// In case we just had consensus, we want other nodes to also submit
-	var hasSubmitted bool
-	if currentIndexBig.Cmp(big.NewInt(0)) > 0 {
-		hasSubmitted, err := t.hasSubmittedTree(nodeAccount.Address, currentIndexBig.Sub(currentIndexBig, big.NewInt(1)))
-		if err != nil {
-			return fmt.Errorf("error checking if Merkle tree submission has already been processed: %w", err)
-		}
-		if !hasSubmitted { // didn't participate in the previous consensus. Decrement the index and submit it as a health check
-			currentIndexBig = currentIndexBig.Sub(currentIndexBig, big.NewInt(1))
-		}
-	}
-
 	// Check if rewards generation is already running
 	t.lock.Lock()
 	if t.isRunning {
@@ -208,6 +195,10 @@ func (t *submitRewardsTree_Stateless) Run(nodeTrusted bool, state *state.Network
 		}
 
 		// Return if this node has already submitted the tree for the current interval and there's a file present
+		hasSubmitted, err := t.hasSubmittedTree(nodeAccount.Address, currentIndexBig)
+		if err != nil {
+			return fmt.Errorf("error checking if Merkle tree submission has already been processed: %w", err)
+		}
 		if hasSubmitted {
 			return nil
 		}

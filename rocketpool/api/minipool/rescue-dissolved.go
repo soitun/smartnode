@@ -7,10 +7,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/rocket-pool/rocketpool-go/minipool"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	rptypes "github.com/rocket-pool/rocketpool-go/types"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
+	"github.com/rocket-pool/smartnode/bindings/minipool"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	rptypes "github.com/rocket-pool/smartnode/bindings/types"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
 	"github.com/urfave/cli"
 	"golang.org/x/sync/errgroup"
 
@@ -91,7 +91,7 @@ func getMinipoolRescueDissolvedDetailsForNode(c *cli.Context) (*api.GetMinipoolR
 
 }
 
-func getMinipoolRescueDissolvedDetails(rp *rocketpool.RocketPool, w *wallet.Wallet, bc beacon.Client, minipoolAddress common.Address, nodeAddress common.Address) (api.MinipoolRescueDissolvedDetails, error) {
+func getMinipoolRescueDissolvedDetails(rp *rocketpool.RocketPool, w wallet.Wallet, bc beacon.Client, minipoolAddress common.Address, nodeAddress common.Address) (api.MinipoolRescueDissolvedDetails, error) {
 
 	// Create minipool
 	mp, err := minipool.NewMinipool(rp, minipoolAddress, nil)
@@ -216,7 +216,7 @@ func getMinipoolRescueDissolvedDetails(rp *rocketpool.RocketPool, w *wallet.Wall
 }
 
 // Create a transaction for submitting a rescue deposit, optionally simulating it only for gas estimation
-func getDepositTx(rp *rocketpool.RocketPool, w *wallet.Wallet, bc beacon.Client, minipoolAddress common.Address, amount *big.Int, opts *bind.TransactOpts) (*types.Transaction, error) {
+func getDepositTx(rp *rocketpool.RocketPool, w wallet.Wallet, bc beacon.Client, minipoolAddress common.Address, amount *big.Int, opts *bind.TransactOpts) (*types.Transaction, error) {
 
 	blankAddress := common.Address{}
 	casperAddress, err := rp.GetAddress("casperDeposit", nil)

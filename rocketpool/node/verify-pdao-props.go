@@ -7,10 +7,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rocket-pool/rocketpool-go/dao/protocol"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/types"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
+	"github.com/rocket-pool/smartnode/bindings/dao/protocol"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/types"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
 	"github.com/rocket-pool/smartnode/shared/services"
 	"github.com/rocket-pool/smartnode/shared/services/beacon"
 	"github.com/rocket-pool/smartnode/shared/services/config"
@@ -39,7 +39,7 @@ type verifyPdaoProps struct {
 	c                   *cli.Context
 	log                 *log.ColorLogger
 	cfg                 *config.RocketPoolConfig
-	w                   *wallet.Wallet
+	w                   wallet.Wallet
 	rp                  *rocketpool.RocketPool
 	bc                  beacon.Client
 	gasThreshold        float64
@@ -62,7 +62,7 @@ func newVerifyPdaoProps(c *cli.Context, logger log.ColorLogger) (*verifyPdaoProp
 	if err != nil {
 		return nil, err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return nil, err
 	}
