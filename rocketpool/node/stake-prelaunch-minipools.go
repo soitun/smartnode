@@ -9,11 +9,11 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rocket-pool/rocketpool-go/minipool"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	rptypes "github.com/rocket-pool/rocketpool-go/types"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
-	rpstate "github.com/rocket-pool/rocketpool-go/utils/state"
+	"github.com/rocket-pool/smartnode/bindings/minipool"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	rptypes "github.com/rocket-pool/smartnode/bindings/types"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
+	rpstate "github.com/rocket-pool/smartnode/bindings/utils/state"
 	"github.com/urfave/cli"
 
 	"github.com/rocket-pool/smartnode/shared/services"
@@ -33,7 +33,7 @@ type stakePrelaunchMinipools struct {
 	c              *cli.Context
 	log            log.ColorLogger
 	cfg            *config.RocketPoolConfig
-	w              *wallet.Wallet
+	w              wallet.Wallet
 	rp             *rocketpool.RocketPool
 	bc             beacon.Client
 	d              *client.Client
@@ -51,7 +51,7 @@ func newStakePrelaunchMinipools(c *cli.Context, logger log.ColorLogger) (*stakeP
 	if err != nil {
 		return nil, err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return nil, err
 	}
