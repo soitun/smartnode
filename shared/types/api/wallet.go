@@ -3,8 +3,8 @@ package api
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/types"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/types"
 )
 
 // Encrypted validator keystore following the EIP-2335 standard
@@ -18,11 +18,16 @@ type ValidatorKeystore struct {
 }
 
 type WalletStatusResponse struct {
-	Status            string         `json:"status"`
-	Error             string         `json:"error"`
-	PasswordSet       bool           `json:"passwordSet"`
-	WalletInitialized bool           `json:"walletInitialized"`
-	AccountAddress    common.Address `json:"accountAddress"`
+	Status            string `json:"status"`
+	Error             string `json:"error"`
+	PasswordSet       bool   `json:"passwordSet"`
+	WalletInitialized bool   `json:"walletInitialized"`
+	// When masquerading, AccountAddress represents the masqueraded address.
+	// When using a normal wallet, AccountAddress represents the address derived from the wallet stored on disk
+	AccountAddress common.Address `json:"accountAddress"`
+	// NodeAddress always represents the address drived from the wallet stored on disk
+	NodeAddress    common.Address `json:"nodeAddress"`
+	IsMasquerading bool           `json:"isMasquerading"`
 }
 
 type SetPasswordResponse struct {
@@ -85,6 +90,16 @@ type TestMnemonicResponse struct {
 }
 
 type PurgeResponse struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
+
+type MasqueradeResponse struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
+
+type EndMasqueradeResponse struct {
 	Status string `json:"status"`
 	Error  string `json:"error"`
 }

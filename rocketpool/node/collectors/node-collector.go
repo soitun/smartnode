@@ -11,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
 	"github.com/rocket-pool/smartnode/shared/services"
 	"github.com/rocket-pool/smartnode/shared/services/beacon"
 	"github.com/rocket-pool/smartnode/shared/services/config"
@@ -266,7 +266,6 @@ func (collector *NodeCollector) Collect(channel chan<- prometheus.Metric) {
 	rewardsInterval := state.NetworkDetails.IntervalDuration
 	inflationInterval := state.NetworkDetails.RPLInflationIntervalRate
 	totalRplSupply := state.NetworkDetails.RPLTotalSupply
-	totalEffectiveStake := collector.stateLocker.GetTotalEffectiveRPLStake()
 	nodeOperatorRewardsPercent := eth.WeiToEth(state.NetworkDetails.NodeOperatorRewardsPercent)
 	previousIntervalTotalNodeWeight := big.NewInt(0)
 	ethBalance := eth.WeiToEth(nd.BalanceETH)
@@ -280,9 +279,6 @@ func (collector *NodeCollector) Collect(channel chan<- prometheus.Metric) {
 	var beaconHead beacon.BeaconHead
 	unclaimedEthRewards := float64(0)
 	unclaimedRplRewards := float64(0)
-	if totalEffectiveStake == nil {
-		return
-	}
 
 	// Get the cumulative claimed and unclaimed RPL rewards
 	wg.Go(func() error {
@@ -531,7 +527,7 @@ func (collector *NodeCollector) Collect(channel chan<- prometheus.Metric) {
 	 * period we don't attempt an estimate and simply use 0.
 	 */
 	estimatedRewards := float64(0)
-	if totalEffectiveStake.Cmp(big.NewInt(0)) == 1 && nodeWeight.Cmp(big.NewInt(0)) == 1 && state.NetworkDetails.RewardIndex > 0 {
+	if nodeWeight.Cmp(big.NewInt(0)) == 1 && state.NetworkDetails.RewardIndex > 0 {
 
 		nodeWeightSum := big.NewInt(0).Add(nodeWeight, previousIntervalTotalNodeWeight)
 

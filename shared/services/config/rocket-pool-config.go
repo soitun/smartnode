@@ -1383,6 +1383,15 @@ func (cfg *RocketPoolConfig) GetMevBoostOpenPorts() string {
 	return fmt.Sprintf("\"%s\"", portMode.DockerPortMapping(port))
 }
 
+// TODO: remove this code on the next Prysm release - so users can still rollback from 6.0.4
+// Used by text/template to select an entrypoint based on which consensus client is used.
+func (cfg *RocketPoolConfig) GetEth2Entrypoint() string {
+	if client, _ := cfg.GetSelectedConsensusClient(); client == config.ConsensusClient_Prysm {
+		return "bash"
+	}
+	return "sh"
+}
+
 // The title for the config
 func (cfg *RocketPoolConfig) GetConfigTitle() string {
 	return cfg.Title
