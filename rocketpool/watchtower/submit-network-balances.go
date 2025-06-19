@@ -10,11 +10,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/rocket-pool/rocketpool-go/network"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	rptypes "github.com/rocket-pool/rocketpool-go/types"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
-	rpstate "github.com/rocket-pool/rocketpool-go/utils/state"
+	"github.com/rocket-pool/smartnode/bindings/network"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	rptypes "github.com/rocket-pool/smartnode/bindings/types"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
+	rpstate "github.com/rocket-pool/smartnode/bindings/utils/state"
 	"github.com/urfave/cli"
 	"golang.org/x/sync/errgroup"
 
@@ -40,7 +40,7 @@ type submitNetworkBalances struct {
 	log       *log.ColorLogger
 	errLog    *log.ColorLogger
 	cfg       *config.RocketPoolConfig
-	w         *wallet.Wallet
+	w         wallet.Wallet
 	ec        rocketpool.ExecutionClient
 	rp        *rocketpool.RocketPool
 	bc        beacon.Client
@@ -74,7 +74,7 @@ func newSubmitNetworkBalances(c *cli.Context, logger log.ColorLogger, errorLogge
 	if err != nil {
 		return nil, err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return nil, err
 	}

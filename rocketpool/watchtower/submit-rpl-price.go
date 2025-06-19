@@ -16,10 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/rocket-pool/rocketpool-go/dao/trustednode"
-	"github.com/rocket-pool/rocketpool-go/network"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
+	"github.com/rocket-pool/smartnode/bindings/dao/trustednode"
+	"github.com/rocket-pool/smartnode/bindings/network"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
 	"github.com/urfave/cli"
 
 	"github.com/rocket-pool/smartnode/rocketpool/watchtower/utils"
@@ -246,7 +246,7 @@ type submitRplPrice struct {
 	log       *log.ColorLogger
 	errLog    *log.ColorLogger
 	cfg       *config.RocketPoolConfig
-	w         *wallet.Wallet
+	w         wallet.Wallet
 	ec        rocketpool.ExecutionClient
 	rp        *rocketpool.RocketPool
 	bc        beacon.Client
@@ -262,7 +262,7 @@ func newSubmitRplPrice(c *cli.Context, logger log.ColorLogger, errorLogger log.C
 	if err != nil {
 		return nil, err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return nil, err
 	}
@@ -375,29 +375,31 @@ func (t *submitRplPrice) run(state *state.NetworkState) error {
 	eth2Config := state.BeaconConfig
 
 	var hasSubmittedPastBlock bool
+	var eventFound bool
 	var nextSubmissionTime time.Time
 	var targetBlockNumber uint64
-	var lastSubmissionBlockHeader *types.Header
-
+	var lastSubmissionSlotTimestamp uint64
 	// Check if the node has submitted prices for the latest block
 	if lastSubmissionBlock != 0 {
-		// Create context with timeout
-		ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
-		defer cancel()
-
-		// Get the lastSubmissionBlock timestamp
-		lastSubmissionBlockHeader, err = t.rp.Client.HeaderByNumber(ctx, big.NewInt(int64(lastSubmissionBlock)))
+		lastSubmissionEvent := network.PriceUpdatedEvent{}
+		eventFound, lastSubmissionEvent, err = network.GetPriceUpdatedEvent(t.rp, lastSubmissionBlock, nil)
 		if err != nil {
-			t.log.Printlnf("Error getting the latest submission block header: %s", err.Error())
+			t.log.Printlnf("Error getting price submission event for block %d", lastSubmissionBlock)
 			return err
 		}
-		hasSubmittedPastBlock, err = t.hasSubmittedSpecificBlockPrices(nodeAccount.Address, lastSubmissionBlock, lastSubmissionBlockHeader.Time, state.NetworkDetails.RplPrice)
-		if err != nil {
-			t.log.Printlnf("Error checking if node has submitted prices for block %d: %s", lastSubmissionBlock, err.Error())
-			return err
+		if !eventFound {
+			t.log.Printlnf("No price submission event found for block %d", lastSubmissionBlock)
+		} else {
+			lastSubmissionSlotTimestamp = lastSubmissionEvent.SlotTimestamp.Uint64()
+
+			hasSubmittedPastBlock, err = t.hasSubmittedSpecificBlockPrices(nodeAccount.Address, lastSubmissionBlock, lastSubmissionSlotTimestamp, state.NetworkDetails.RplPrice)
+			if err != nil {
+				t.log.Printlnf("Error checking if node has submitted prices for block %d: %s", lastSubmissionBlock, err.Error())
+				return err
+			}
 		}
 	}
-	if hasSubmittedPastBlock || lastSubmissionBlock == 0 {
+	if hasSubmittedPastBlock || lastSubmissionBlock == 0 || !eventFound {
 		// If the node participated in consensus, find the next submission target
 		var targetBlockHeader *types.Header
 		_, nextSubmissionTime, targetBlockHeader, err = utils.FindNextSubmissionTarget(t.rp, eth2Config, t.bc, t.ec, lastSubmissionBlock, referenceTimestamp, submissionIntervalInSeconds)
@@ -411,7 +413,7 @@ func (t *submitRplPrice) run(state *state.NetworkState) error {
 		// If the node didn't participate in consensus, use the last submission block as the target block as a health check
 		t.log.Printlnf("Node has not participated on the consensus for block %d, using it as the target block.", lastSubmissionBlock)
 		targetBlockNumber = lastSubmissionBlock
-		nextSubmissionTime = time.Unix(int64(lastSubmissionBlockHeader.Time), 0)
+		nextSubmissionTime = time.Unix(int64(lastSubmissionSlotTimestamp), 0)
 
 	}
 

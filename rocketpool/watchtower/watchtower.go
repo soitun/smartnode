@@ -13,8 +13,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
 
-	"github.com/rocket-pool/rocketpool-go/dao/trustednode"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/dao/trustednode"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
 	"github.com/rocket-pool/smartnode/rocketpool/watchtower/collectors"
 	"github.com/rocket-pool/smartnode/shared/services"
 	"github.com/rocket-pool/smartnode/shared/services/beacon"
@@ -65,7 +65,7 @@ func run(c *cli.Context) error {
 	// Configure
 	configureHTTP()
 
-	// Wait until node is registered
+	// Wait until the node wallet stored on disk is registered
 	if err := services.WaitNodeRegistered(c, true); err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return err
 	}

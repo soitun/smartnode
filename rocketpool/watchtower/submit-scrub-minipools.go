@@ -11,12 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/prysmaticlabs/prysm/v5/beacon-chain/core/signing"
 	prdeposit "github.com/prysmaticlabs/prysm/v5/contracts/deposit"
-	"github.com/rocket-pool/rocketpool-go/minipool"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/types"
-	rputils "github.com/rocket-pool/rocketpool-go/utils"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
-	rpstate "github.com/rocket-pool/rocketpool-go/utils/state"
+	"github.com/rocket-pool/smartnode/bindings/minipool"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/types"
+	rputils "github.com/rocket-pool/smartnode/bindings/utils"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
+	rpstate "github.com/rocket-pool/smartnode/bindings/utils/state"
 	"github.com/urfave/cli"
 
 	ethpb "github.com/prysmaticlabs/prysm/v5/proto/prysm/v1alpha1"
@@ -44,7 +44,7 @@ type submitScrubMinipools struct {
 	log       log.ColorLogger
 	errLog    log.ColorLogger
 	cfg       *config.RocketPoolConfig
-	w         *wallet.Wallet
+	w         wallet.Wallet
 	rp        *rocketpool.RocketPool
 	ec        rocketpool.ExecutionClient
 	bc        beacon.Client
@@ -90,7 +90,7 @@ func newSubmitScrubMinipools(c *cli.Context, logger log.ColorLogger, errorLogger
 	if err != nil {
 		return nil, err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return nil, err
 	}

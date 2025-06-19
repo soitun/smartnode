@@ -3,33 +3,29 @@ variable "VERSION" {
 }
 
 group "default" {
-  targets = ["builder", "daemon"]
+  targets = ["builder", "smartnode"]
 }
 
 target "builder" {
   dockerfile = "docker/rocketpool-dockerfile"
   tags = [ 
     "rocketpool/smartnode-builder:${VERSION}",
-    "rocketpool/smartnode-builder:local"
   ]
   target = "smartnode_dependencies"
   platforms = [ "linux/amd64" ]
+  output = [{ "type": "docker" }]
 }
 
-target "daemon" {
-  name = "daemon-${arch}"
+target "smartnode" {
   dockerfile = "docker/rocketpool-dockerfile"
   args = {
+    BUILDPLATFORM = "linux/amd64"
     VERSION = "${VERSION}"
   }
   tags = [
-    "rocketpool/smartnode:${VERSION}-${arch}",
-    "localhost/rocketpool/smartnode:${VERSION}-${arch}"
+    "rocketpool/smartnode:${VERSION}",
   ]
-  matrix = {
-    arch = [ "amd64", "arm64" ]
-  }
-  target = "daemon"
-  platform = "linux/${arch}"
-  output = [{ "type": "tar", "dest": "build/${VERSION}/docker/smartnode:${VERSION}-${arch}.tar" }]
+  target = "smartnode"
+  platforms = ["linux/amd64", "linux/arm64"]
+  output = [{ "type": "docker" }]
 }

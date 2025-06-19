@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/settings/trustednode"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/settings/trustednode"
 	"github.com/urfave/cli"
 
 	"github.com/rocket-pool/smartnode/shared/services"
@@ -14,7 +14,7 @@ import (
 	"github.com/rocket-pool/smartnode/shared/utils/eth1"
 )
 
-func canProposeSetting(c *cli.Context, w *wallet.Wallet, rp *rocketpool.RocketPool) (*api.CanProposeTNDAOSettingResponse, error) {
+func canProposeSetting(c *cli.Context, w wallet.Wallet, rp *rocketpool.RocketPool) (*api.CanProposeTNDAOSettingResponse, error) {
 
 	// Response
 	response := api.CanProposeTNDAOSettingResponse{}

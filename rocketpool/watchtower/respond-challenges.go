@@ -3,9 +3,9 @@ package watchtower
 import (
 	"fmt"
 
-	"github.com/rocket-pool/rocketpool-go/dao/trustednode"
-	"github.com/rocket-pool/rocketpool-go/rocketpool"
-	"github.com/rocket-pool/rocketpool-go/utils/eth"
+	"github.com/rocket-pool/smartnode/bindings/dao/trustednode"
+	"github.com/rocket-pool/smartnode/bindings/rocketpool"
+	"github.com/rocket-pool/smartnode/bindings/utils/eth"
 	"github.com/urfave/cli"
 
 	"github.com/rocket-pool/smartnode/rocketpool/watchtower/utils"
@@ -22,7 +22,7 @@ type respondChallenges struct {
 	c   *cli.Context
 	log log.ColorLogger
 	cfg *config.RocketPoolConfig
-	w   *wallet.Wallet
+	w   wallet.Wallet
 	rp  *rocketpool.RocketPool
 	m   *state.NetworkStateManager
 }
@@ -35,7 +35,7 @@ func newRespondChallenges(c *cli.Context, logger log.ColorLogger, m *state.Netwo
 	if err != nil {
 		return nil, err
 	}
-	w, err := services.GetWallet(c)
+	w, err := services.GetHdWallet(c)
 	if err != nil {
 		return nil, err
 	}

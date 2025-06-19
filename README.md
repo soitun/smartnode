@@ -42,7 +42,6 @@ A [Makefile](./Makefile) is included for building, testing, and linting.
 * `make build/treegen` builds just the treegen stand-alone binary.
   * The build is done in docker, unless you run `make NO_DOCKER=true \<cmd\>`
 * `make docker` builds the rocketpool/smartnode containers for all supported architectures and saves them in build/\<version\>/docker
-* `make docker-load` builds and loads the smartnode containers.
 * `make docker-push` builds, loads, pushes, creates a multi-arch manifest, and pushes the smartnode containers and manifest.
 * `make docker-latest` does the same as docker-push, but tags latest which is also pushed.
 * `make lint` runs the linter.
@@ -168,7 +167,10 @@ The following commands are available via the Smartnode client:
   - `rocketpool wallet test-recovery, t` - Test recovering a node wallet without actually generating any of the node wallet or validator key files to ensure the process works as expected
   - `rocketpool wallet export, e` - Export the node wallet in JSON format
   - `rocketpool wallet purge` - Deletes your node wallet, your validator keys, and restarts your Validator Client while preserving your chain data. WARNING: Only use this if you want to stop validating with this machine!
-  - `rocketpool wallet set-ens-name` - Send a transaction from the node wallet to configure it's ENS name
+  - `rocketpool wallet set-ens-name` - Send a transaction from the node wallet to 
+  configure it's ENS name
+  - `rocketpool wallet masquerade` - Simulates a different wallet being loaded in the Smart Node
+  - `rocketpool wallet end-masquerade` - Ends masquerading and goes back to using the original wallet address
 - **help**, h - Shows a list of commands or help for one command
 
 
